@@ -60,6 +60,7 @@ export function useSAR<T>({
   const [data, setData] = useState<T>();
 
   const isMountedRef = useRef(false);
+  const loadingRef = useRef(false);
   const lastRequestDataRef = useRef<FormData | Record<string, any> | undefined>(
     undefined
   );
@@ -106,7 +107,7 @@ export function useSAR<T>({
       const currentTime = Date.now();
       if (
         currentTime - lastRequestTimeRef.current < dedupingInterval &&
-        loading
+        loadingRef.current
       ) {
         return;
       }
@@ -121,6 +122,7 @@ export function useSAR<T>({
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
 
+      loadingRef.current = true;
       setLoading(true);
       setError(undefined);
 
@@ -172,6 +174,7 @@ export function useSAR<T>({
         }
       } finally {
         if (!signal.aborted) {
+          loadingRef.current = false;
           setLoading(false);
         }
       }
@@ -179,7 +182,6 @@ export function useSAR<T>({
     [
       condition,
       serverAction,
-      loading,
       cacheTime,
       dedupingInterval,
       onSuccess,

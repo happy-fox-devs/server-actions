@@ -136,6 +136,85 @@ type Sanitized$1<T> = T extends Date ? string : T extends File ? {
 } : T extends (infer U)[] ? Sanitized$1<U>[] : T extends object ? {
     [K in keyof T]: Sanitized$1<T[K]>;
 } : T;
+/**
+ * Wraps a server action to provide automatic data transformation and response wrapping
+ *
+ * Features:
+ * - Automatically transforms FormData to typed objects
+ * - Wraps results in ServerActionResponse format
+ * - Sanitizes data for client consumption
+ * - Handles errors gracefully
+ * - **Smart Response Detection**: Detects response patterns and handles accordingly
+ *
+ * **Supported Response Patterns**:
+ * 1. `{ ok: true, message: string, data: any }` → Uses your custom success message
+ * 2. `{ ok: false, message: string, error: any }` → Throws error with your message
+ * 3. `{ data: any, message?: string }` → Success with optional custom message
+ * 4. `{ error: any, message?: string }` → Throws error with optional message
+ * 5. `any` → Wraps in default success response
+ *
+ * @param serverAction - Server action that returns data or response object
+ * @returns Function that accepts FormData and returns ServerActionResponse with sanitized data
+ *
+ * @example
+ * ```typescript
+ * // Pattern 1: Direct data (auto-wrapped)
+ * const getUser = withFormTransform(async (data: { id: string }) => {
+ *   return await db.user.findUnique({ where: { id: data.id } });
+ *   // → { ok: true, message: "Operation completed successfully", data: user }
+ * });
+ *
+ * // Pattern 2: Custom success message
+ * const createUser = withFormTransform(async (data: CreateUserInput) => {
+ *   const user = await db.user.create({ data });
+ *   return {
+ *     ok: true,
+ *     message: "User created successfully",
+ *     data: user
+ *   };
+ * });
+ * // → Result: { ok: true, message: "User created successfully", data: user }
+ *
+ * // Pattern 3: Error handling with custom message
+ * const deleteUser = withFormTransform(async (data: { id: string }) => {
+ *   const user = await db.user.findUnique({ where: { id: data.id } });
+ *   if (!user) {
+ *     return {
+ *       ok: false,
+ *       message: "User not found",
+ *       error: new Error("User not found")
+ *     };
+ *   }
+ *
+ *   await db.user.delete({ where: { id: data.id } });
+ *   return { ok: true, message: "User deleted successfully", data: null };
+ * });
+ * // → Result: { ok: false, message: "User not found", error: ... }
+ *
+ * // Pattern 4: Throwing an error directly
+ * const updateUser = withFormTransform(async (data: UpdateUserInput) => {
+ *   const user = await db.user.findUnique({ where: { id: data.id } });
+ *   if (!user) {
+ *     throw new Error("User not found");
+ *   }
+ *
+ *   await db.user.update({ where: { id: data.id }, data });
+ *   return { ok: true, message: "User updated successfully", data: null };
+ * });
+ * // → Result: { ok: false, message: "User not found", error: ... }
+ *
+ * // Pattern 5: Without returning anything (void)
+ * const voidAction = withFormTransform(async (data: { id: string }) => {
+ *   await db.user.delete({ where: { id: data.id } });
+ * });
+ * // → Result: { ok: true, message: "Operation completed successfully", data: null }
+ *
+ *
+ * // Usage (automatically handles FormData → object conversion)
+ * const result = await createUser(formData);
+ * // Result: { ok: true, message: "...", data: sanitizedUser }
+ * ```
+ */
 type ResponseWithError = {
     error: any;
     message?: string;
@@ -146,7 +225,16 @@ type ExtractDataType<R> = R extends {
 } ? D : R extends {
     data: infer D;
 } ? D : R extends ResponseWithError ? never : R;
-declare function withFormTransform<T, R>(serverAction: (data: T) => Promise<R> | R): (formData: FormData) => Promise<ServerActionResponse<Sanitized$1<ExtractDataType<R>>>>;
+type ResponsePattern<R> = {
+    ok?: true;
+    message?: string;
+    data: R;
+} | {
+    ok?: false;
+    message?: string;
+    error: Error;
+} | any;
+declare function withFormTransform<T, R>(serverAction: (data: T) => Promise<ResponsePattern<R>> | ResponsePattern<R>): (formData: FormData) => Promise<ServerActionResponse<Sanitized$1<ExtractDataType<R>>>>;
 
 /**
  * Executes a server action with automatic data transformation
