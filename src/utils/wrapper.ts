@@ -155,7 +155,7 @@ type ExtractDataType<R> = R extends { ok: true; data: infer D }
 type ResponsePattern<R> =
   | { ok?: true; message?: string; data: R }
   | { ok?: false; message?: string; error: Error }
-  | any;
+  | R;
 
 export function withFormTransform<T, R>(
   serverAction: (data: T) => Promise<ResponsePattern<R>> | ResponsePattern<R>,

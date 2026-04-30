@@ -233,7 +233,7 @@ type ResponsePattern<R> = {
     ok?: false;
     message?: string;
     error: Error;
-} | any;
+} | R;
 declare function withFormTransform<T, R>(serverAction: (data: T) => Promise<ResponsePattern<R>> | ResponsePattern<R>): (formData: FormData) => Promise<ServerActionResponse<Sanitized$1<ExtractDataType<R>>>>;
 
 /**
