@@ -1,6 +1,6 @@
 {
   "name": "@happy-fox/server-actions",
-  "version": "0.1.0-beta.7",
+  "version": "0.1.0-beta.8",
   "description": "Lightweight React Server Actions library with TypeScript support",
   "author": {
     "name": "Adrian M. A. Urrea",
