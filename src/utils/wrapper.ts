@@ -82,7 +82,7 @@ type Sanitized<T> = T extends Date
  * @returns Function that accepts FormData and returns ServerActionResponse with sanitized data
  *
  * @example
- * ```typescript 
+ * ```typescript
  * // Pattern 1: Direct data (auto-wrapped)
  * const getUser = withFormTransform(async (data: { id: string }) => {
  *   return await db.user.findUnique({ where: { id: data.id } });
@@ -152,13 +152,8 @@ type ExtractDataType<R> = R extends { ok: true; data: infer D }
       ? never
       : R;
 
-type ResponsePattern<R> =
-  | { ok?: true; message?: string; data: R }
-  | { ok?: false; message?: string; error: Error }
-  | R;
-
 export function withFormTransform<T, R>(
-  serverAction: (data: T) => Promise<ResponsePattern<R>> | ResponsePattern<R>,
+  serverAction: (data: T) => Promise<R> | R,
 ): (
   formData: FormData,
 ) => Promise<ServerActionResponse<Sanitized<ExtractDataType<R>>>> {
