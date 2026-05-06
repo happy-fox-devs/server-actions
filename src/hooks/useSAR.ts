@@ -72,6 +72,15 @@ export function useSAR<T>({
   // Cache management
   const cacheTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Stable refs for callbacks and action — prevents execute from changing
+  // identity on every render when inline functions are passed as props.
+  const serverActionRef = useRef(serverAction);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  useEffect(() => { serverActionRef.current = serverAction; }, [serverAction]);
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
   // Cleanup resources on unmount
   useEffect(() => {
     return () => {
@@ -128,7 +137,7 @@ export function useSAR<T>({
 
       try {
         const response = await serverActionRequest<T>(
-          serverAction,
+          serverActionRef.current,
           requestData || lastRequestDataRef.current || {}
         );
 
@@ -138,8 +147,8 @@ export function useSAR<T>({
           setData(response.data);
 
           // Success callback
-          if (onSuccess) {
-            onSuccess(response.data);
+          if (onSuccessRef.current) {
+            onSuccessRef.current(response.data);
           }
 
           // Set cache timeout if configured
@@ -156,8 +165,8 @@ export function useSAR<T>({
           setError(errorMessage);
 
           // Error callback
-          if (onError) {
-            onError(errorMessage);
+          if (onErrorRef.current) {
+            onErrorRef.current(errorMessage);
           }
         }
 
@@ -168,8 +177,8 @@ export function useSAR<T>({
           setError(errorMessage);
 
           // Error callback
-          if (onError) {
-            onError(errorMessage);
+          if (onErrorRef.current) {
+            onErrorRef.current(errorMessage);
           }
         }
       } finally {
@@ -181,11 +190,8 @@ export function useSAR<T>({
     },
     [
       condition,
-      serverAction,
       cacheTime,
       dedupingInterval,
-      onSuccess,
-      onError,
     ]
   );
 

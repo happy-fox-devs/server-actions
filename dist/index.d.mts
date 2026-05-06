@@ -225,16 +225,7 @@ type ExtractDataType<R> = R extends {
 } ? D : R extends {
     data: infer D;
 } ? D : R extends ResponseWithError ? never : R;
-type ResponsePattern<R> = {
-    ok?: true;
-    message?: string;
-    data: R;
-} | {
-    ok?: false;
-    message?: string;
-    error: Error;
-} | R;
-declare function withFormTransform<T, R>(serverAction: (data: T) => Promise<ResponsePattern<R>> | ResponsePattern<R>): (formData: FormData) => Promise<ServerActionResponse<Sanitized$1<ExtractDataType<R>>>>;
+declare function withFormTransform<T, R>(serverAction: (data: T) => Promise<R> | R): (formData: FormData) => Promise<ServerActionResponse<Sanitized$1<ExtractDataType<R>>>>;
 
 /**
  * Executes a server action with automatic data transformation
